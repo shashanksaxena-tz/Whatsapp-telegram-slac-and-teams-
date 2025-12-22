@@ -7,9 +7,11 @@ import { logger } from '../utils/logger';
  */
 export class OpenAIProvider implements AIProvider {
   private client: OpenAI;
+  private model: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, model: string = 'gpt-3.5-turbo') {
     this.client = new OpenAI({ apiKey });
+    this.model = model;
   }
 
   async processNaturalLanguage(text: string, context?: Record<string, any>): Promise<Intent> {
@@ -26,7 +28,7 @@ Examples:
 "Update product price to $50" -> {"action": "update", "entities": {"type": "product", "price": 50}, "confidence": 0.8}`;
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: text },
@@ -64,7 +66,7 @@ Result data: ${JSON.stringify(data)}
 Generate a natural language response.`;
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: this.model,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },

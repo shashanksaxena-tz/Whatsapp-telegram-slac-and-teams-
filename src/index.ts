@@ -8,6 +8,7 @@ import {
   TelegramAdapter,
   SlackAdapter,
   TeamsAdapter,
+  PlatformAdapter,
 } from './platforms';
 import { APIServer } from './api';
 
@@ -36,7 +37,7 @@ async function main() {
     const router = new MessageRouter(aiProvider, mcpClient);
 
     // Initialize Platform Adapters
-    const adapters: any[] = [];
+    const adapters: PlatformAdapter[] = [];
 
     if (config.whatsapp.enabled) {
       logger.info('Initializing WhatsApp adapter...');

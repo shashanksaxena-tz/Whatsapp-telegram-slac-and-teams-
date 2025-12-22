@@ -13,7 +13,8 @@ export class SlackAdapter implements PlatformAdapter {
   constructor(
     private botToken: string,
     private signingSecret: string,
-    private appToken?: string
+    private appToken?: string,
+    private port: number = 3001
   ) {}
 
   async initialize(): Promise<void> {
@@ -46,9 +47,9 @@ export class SlackAdapter implements PlatformAdapter {
     if (this.appToken) {
       await this.app.start();
     } else {
-      await this.app.start(3000);
+      await this.app.start(this.port);
     }
-    logger.info('Slack adapter initialized');
+    logger.info(`Slack adapter initialized${!this.appToken ? ` on port ${this.port}` : ' (socket mode)'}`);
   }
 
   async sendMessage(chatId: string, message: string, metadata?: Record<string, any>): Promise<void> {

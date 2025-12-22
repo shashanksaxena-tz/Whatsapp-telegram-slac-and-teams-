@@ -7,9 +7,11 @@ import { logger } from '../utils/logger';
  */
 export class AnthropicProvider implements AIProvider {
   private client: any;
+  private model: string;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, model: string = 'claude-3-haiku-20240307') {
     this.client = new Anthropic({ apiKey });
+    this.model = model;
   }
 
   async processNaturalLanguage(text: string, context?: Record<string, any>): Promise<Intent> {
@@ -23,7 +25,7 @@ Analyze the user's message and return a JSON object with:
 Return ONLY valid JSON, no other text.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: this.model,
         max_tokens: 1024,
         messages: [
           { 
@@ -64,7 +66,7 @@ ${JSON.stringify(data)}
 Generate a friendly, conversational response that explains what happened to the user. Be concise and clear.`;
 
       const response = await this.client.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: this.model,
         max_tokens: 1024,
         messages: [
           { role: 'user', content: prompt },

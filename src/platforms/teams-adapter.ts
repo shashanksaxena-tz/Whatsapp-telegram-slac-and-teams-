@@ -77,20 +77,17 @@ export class TeamsAdapter implements PlatformAdapter {
       throw new Error('Teams adapter not initialized');
     }
 
-    const activity: Partial<Activity> = {
-      type: ActivityTypes.Message,
-      text: message,
-      conversation: { 
-        id: chatId,
-        isGroup: false,
-        conversationType: 'personal',
-        name: '',
-      },
-    };
-
-    // Note: For actual sending, you'd need to store conversation references
-    // This is a simplified version
+    // Note: Microsoft Teams sending requires storing conversation references
+    // This is a simplified implementation. In production, you should:
+    // 1. Store conversation references when receiving messages
+    // 2. Use the stored reference to continue the conversation
+    // 3. Use the BotFrameworkAdapter.continueConversation method
+    
+    logger.warn('Teams sendMessage is not fully implemented - requires conversation reference storage');
     logger.debug(`Would send Teams message to ${chatId}: ${message}`);
+    
+    // TODO: Implement proper conversation reference storage and retrieval
+    // For now, this is a placeholder that logs the intent
   }
 
   onMessage(handler: (message: Message) => Promise<void>): void {
