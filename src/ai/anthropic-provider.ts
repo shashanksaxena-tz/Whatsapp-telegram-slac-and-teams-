@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
  * Anthropic Claude-based AI Provider for natural language processing
  */
 export class AnthropicProvider implements AIProvider {
-  private client: Anthropic;
+  private client: any;
 
   constructor(apiKey: string) {
     this.client = new Anthropic({ apiKey });

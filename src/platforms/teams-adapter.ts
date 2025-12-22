@@ -80,7 +80,12 @@ export class TeamsAdapter implements PlatformAdapter {
     const activity: Partial<Activity> = {
       type: ActivityTypes.Message,
       text: message,
-      conversation: { id: chatId },
+      conversation: { 
+        id: chatId,
+        isGroup: false,
+        conversationType: 'personal',
+        name: '',
+      },
     };
 
     // Note: For actual sending, you'd need to store conversation references

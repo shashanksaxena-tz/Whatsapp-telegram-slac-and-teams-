@@ -16,7 +16,7 @@ export class TelegramAdapter implements PlatformAdapter {
     this.bot = new Telegraf(this.botToken);
 
     this.bot.on('text', async (ctx: Context) => {
-      if (this.messageHandler && ctx.message && 'text' in ctx.message) {
+      if (this.messageHandler && ctx.message && 'text' in ctx.message && ctx.chat) {
         const message: Message = {
           id: ctx.message.message_id.toString(),
           platform: Platform.TELEGRAM,

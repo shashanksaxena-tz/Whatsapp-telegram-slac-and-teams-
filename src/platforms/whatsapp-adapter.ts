@@ -1,5 +1,5 @@
 import { Client, LocalAuth } from 'whatsapp-web.js';
-import qrcode from 'qrcode-terminal';
+import * as qrcode from 'qrcode-terminal';
 import { PlatformAdapter, Platform, Message } from '../types';
 import { logger } from '../utils/logger';
 

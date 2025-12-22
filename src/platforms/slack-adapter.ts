@@ -43,7 +43,11 @@ export class SlackAdapter implements PlatformAdapter {
       }
     });
 
-    await this.app.start(this.appToken ? undefined : 3000);
+    if (this.appToken) {
+      await this.app.start();
+    } else {
+      await this.app.start(3000);
+    }
     logger.info('Slack adapter initialized');
   }
 
