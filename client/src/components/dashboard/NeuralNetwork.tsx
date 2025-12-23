@@ -53,6 +53,8 @@ const NeuralNetwork = () => {
       particles.push(new Particle());
     }
 
+    let animationFrameId: number;
+
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
 
@@ -76,7 +78,7 @@ const NeuralNetwork = () => {
           }
         }
       });
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
@@ -87,7 +89,10 @@ const NeuralNetwork = () => {
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
