@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background text-white antialiased overflow-hidden;
+  font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-surface;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-glass-border rounded-full hover:bg-primary/50 transition-colors;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  @apply bg-glass backdrop-blur-md border border-glass-border shadow-lg;
+}
+
+.text-glow {
+  text-shadow: 0 0 10px currentColor;
+}
+
+.box-glow {
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+}
