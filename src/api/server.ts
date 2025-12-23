@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
 import { MessageRouter } from '../core/message-router';
 import { MCPClientImpl } from '../core/mcp-client';
 import { logger } from '../utils/logger';
@@ -141,6 +142,19 @@ export class APIServer {
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       logger.error('Unhandled error:', err);
       res.status(500).json({ error: 'Internal server error' });
+    });
+
+    // Serve static files from the React frontend app
+    const clientDistPath = path.join(__dirname, '../../client/dist');
+    this.app.use(express.static(clientDistPath));
+
+    // Handle SPA routing by returning index.html for unknown routes
+    // This must be the last route handler
+    this.app.get('*', (req: Request, res: Response) => {
+      if (req.path.startsWith('/api')) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      res.sendFile(path.join(clientDistPath, 'index.html'));
     });
   }
 

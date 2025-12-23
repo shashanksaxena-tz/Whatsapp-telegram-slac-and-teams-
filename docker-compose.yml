@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env
+    environment:
+      - PORT=${PORT:-3000}
+    volumes:
+      - .wwebjs_auth:/app/.wwebjs_auth
+    restart: unless-stopped

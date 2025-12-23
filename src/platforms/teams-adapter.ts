@@ -3,6 +3,7 @@ import {
   TurnContext,
   ActivityTypes,
   Activity,
+  ConversationReference,
 } from 'botbuilder';
 import { PlatformAdapter, Platform, Message } from '../types';
 import { logger } from '../utils/logger';
@@ -16,6 +17,7 @@ export class TeamsAdapter implements PlatformAdapter {
   private adapter: BotFrameworkAdapter | null = null;
   private messageHandler?: (message: Message) => Promise<void>;
   private server?: express.Application;
+  private conversationReferences: Map<string, Partial<ConversationReference>> = new Map();
 
   constructor(
     private appId: string,
@@ -47,23 +49,31 @@ export class TeamsAdapter implements PlatformAdapter {
       }
 
       await this.adapter.processActivity(req, res, async (context: TurnContext) => {
-        if (context.activity.type === ActivityTypes.Message && context.activity.text) {
-          if (this.messageHandler) {
-            const message: Message = {
-              id: context.activity.id || Date.now().toString(),
-              platform: Platform.TEAMS,
-              userId: context.activity.from.id,
-              userName: context.activity.from.name,
-              chatId: context.activity.conversation.id,
-              text: context.activity.text,
-              timestamp: new Date(context.activity.timestamp || Date.now()),
-              metadata: {
-                conversationType: context.activity.conversation.conversationType,
-                channelId: context.activity.channelId,
-              },
-            };
+        if (context.activity.type === ActivityTypes.Message) {
+          const conversationReference = TurnContext.getConversationReference(context.activity);
+          const chatId = context.activity.conversation.id;
 
-            await this.messageHandler(message);
+          // Store the conversation reference for later use
+          this.conversationReferences.set(chatId, conversationReference);
+
+          if (context.activity.text) {
+            if (this.messageHandler) {
+              const message: Message = {
+                id: context.activity.id || Date.now().toString(),
+                platform: Platform.TEAMS,
+                userId: context.activity.from.id,
+                userName: context.activity.from.name,
+                chatId: chatId,
+                text: context.activity.text,
+                timestamp: new Date(context.activity.timestamp || Date.now()),
+                metadata: {
+                  conversationType: context.activity.conversation.conversationType,
+                  channelId: context.activity.channelId,
+                },
+              };
+
+              await this.messageHandler(message);
+            }
           }
         }
       });
@@ -77,17 +87,23 @@ export class TeamsAdapter implements PlatformAdapter {
       throw new Error('Teams adapter not initialized');
     }
 
-    // Note: Microsoft Teams sending requires storing conversation references
-    // This is a simplified implementation. In production, you should:
-    // 1. Store conversation references when receiving messages
-    // 2. Use the stored reference to continue the conversation
-    // 3. Use the BotFrameworkAdapter.continueConversation method
+    const conversationReference = this.conversationReferences.get(chatId);
     
-    logger.warn('Teams sendMessage is not fully implemented - requires conversation reference storage');
-    logger.debug(`Would send Teams message to ${chatId}: ${message}`);
-    
-    // TODO: Implement proper conversation reference storage and retrieval
-    // For now, this is a placeholder that logs the intent
+    if (!conversationReference) {
+      const errorMsg = `No conversation reference found for chat ID ${chatId}. Cannot send message.`;
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    try {
+      await this.adapter.continueConversation(conversationReference, async (context: TurnContext) => {
+        await context.sendActivity(message);
+      });
+      logger.info(`Sent Teams message to ${chatId}`);
+    } catch (error) {
+      logger.error(`Error sending Teams message to ${chatId}:`, error);
+      throw error;
+    }
   }
 
   onMessage(handler: (message: Message) => Promise<void>): void {
