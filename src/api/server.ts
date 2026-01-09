@@ -72,18 +72,109 @@ export class APIServer {
 
     // Get platform status
     this.app.get('/api/platforms', (req: Request, res: Response) => {
+      const platforms = this.router.getRegisteredPlatforms();
       res.json({
-        whatsapp: { enabled: config.whatsapp.enabled },
-        telegram: { enabled: config.telegram.enabled },
-        slack: { enabled: config.slack.enabled },
-        teams: { enabled: config.teams.enabled },
+        whatsapp: { 
+          enabled: config.whatsapp.enabled,
+          registered: platforms.includes('whatsapp')
+        },
+        telegram: { 
+          enabled: config.telegram.enabled,
+          registered: platforms.includes('telegram')
+        },
+        slack: { 
+          enabled: config.slack.enabled,
+          registered: platforms.includes('slack')
+        },
+        teams: { 
+          enabled: config.teams.enabled,
+          registered: platforms.includes('teams')
+        },
       });
+    });
+
+    // Get system metrics for dashboard
+    this.app.get('/api/metrics', (req: Request, res: Response) => {
+      const platforms = this.router.getRegisteredPlatforms();
+      const memUsage = process.memoryUsage();
+      const uptime = process.uptime();
+      
+      res.json({
+        cpu: {
+          usage: Math.min(process.cpuUsage().user / 1000000 / uptime, 100).toFixed(2),
+          unit: '%'
+        },
+        memory: {
+          usage: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2),
+          heapUsed: (memUsage.heapUsed / 1024 / 1024).toFixed(2),
+          heapTotal: (memUsage.heapTotal / 1024 / 1024).toFixed(2),
+          unit: '%'
+        },
+        uptime: {
+          seconds: uptime,
+          formatted: this.formatUptime(uptime)
+        },
+        platforms: {
+          total: platforms.length,
+          active: platforms
+        },
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // Process natural language chat request
+    this.app.post('/api/chat', async (req: Request, res: Response) => {
+      try {
+        const { message, context } = req.body;
+
+        if (!message) {
+          return res.status(400).json({ 
+            error: 'Missing required field: message' 
+          });
+        }
+
+        // Import AI provider dynamically to avoid circular dependencies
+        const { createAIProvider } = require('../ai');
+        const aiProvider = createAIProvider();
+
+        // Process the natural language message
+        const intent = await aiProvider.processNaturalLanguage(message, context);
+
+        let result: any;
+        
+        if (this.mcpClient && intent.action !== 'error') {
+          // Route to MCP server if available
+          const mcpResponse = await this.mcpClient.request({
+            method: intent.action,
+            params: intent.entities,
+            context: context || {},
+          });
+          result = mcpResponse.success ? mcpResponse.data : { error: mcpResponse.error };
+        } else {
+          // Use simulated response
+          result = this.simulateAction(intent);
+        }
+
+        // Generate natural language response
+        const responseText = await aiProvider.generateResponse(intent, result, context);
+
+        res.json({
+          success: true,
+          intent,
+          result,
+          response: responseText,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        logger.error('Error processing chat request:', error);
+        res.status(500).json({ error: error.message });
+      }
     });
 
     // Send message via API
     this.app.post('/api/message', async (req: Request, res: Response) => {
       try {
-        const { platform, chatId, text } = req.body;
+        const { platform, chatId, text, metadata } = req.body;
 
         if (!platform || !chatId || !text) {
           return res.status(400).json({ 
@@ -91,11 +182,12 @@ export class APIServer {
           });
         }
 
-        // This would need to be implemented in MessageRouter
-        // For now, return success
+        // Use the message router to send the message through the appropriate platform adapter
+        await this.router.sendMessage(platform, chatId, text, metadata);
+        
         res.json({ 
           success: true, 
-          message: 'Message sent',
+          message: 'Message sent successfully',
           data: { platform, chatId, text }
         });
       } catch (error: any) {
@@ -160,6 +252,60 @@ export class APIServer {
 
   getApp(): express.Application {
     return this.app;
+  }
+
+  private formatUptime(seconds: number): string {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+    
+    return parts.join(' ');
+  }
+
+  private simulateAction(intent: any): any {
+    // Simulated action execution for demo purposes
+    switch (intent.action) {
+      case 'create':
+        return { 
+          success: true, 
+          id: Date.now().toString(),
+          message: `Created ${intent.entities.type || 'item'} successfully`,
+          data: intent.entities,
+        };
+      case 'read':
+      case 'query':
+      case 'search':
+        return {
+          success: true,
+          results: [
+            { id: '1', name: 'Item 1', ...intent.entities },
+            { id: '2', name: 'Item 2', ...intent.entities },
+          ],
+        };
+      case 'update':
+        return {
+          success: true,
+          message: `Updated ${intent.entities.type || 'item'} successfully`,
+          data: intent.entities,
+        };
+      case 'delete':
+        return {
+          success: true,
+          message: `Deleted ${intent.entities.type || 'item'} successfully`,
+        };
+      default:
+        return {
+          success: false,
+          message: `I understand you want to ${intent.action}, but I'm not sure how to help with that yet.`,
+        };
+    }
   }
 
   start(port: number): void {

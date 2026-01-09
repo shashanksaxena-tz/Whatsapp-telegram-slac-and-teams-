@@ -125,6 +125,26 @@ export class MessageRouter {
     }
   }
 
+  /**
+   * Public method to send a message through a platform adapter
+   * Used by API endpoints to send messages programmatically
+   */
+  async sendMessage(platform: string, chatId: string, text: string, metadata?: Record<string, any>): Promise<void> {
+    const adapter = this.adapters.get(platform);
+    if (!adapter) {
+      throw new Error(`Platform adapter not found or not enabled: ${platform}`);
+    }
+    await adapter.sendMessage(chatId, text, metadata);
+    logger.info(`Message sent to ${platform} chat ${chatId}`);
+  }
+
+  /**
+   * Get list of registered platform adapters
+   */
+  getRegisteredPlatforms(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
   async shutdown(): Promise<void> {
     logger.info('Shutting down message router...');
     for (const adapter of this.adapters.values()) {
