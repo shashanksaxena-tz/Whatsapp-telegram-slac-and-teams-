@@ -99,10 +99,15 @@ export class APIServer {
       const memUsage = process.memoryUsage();
       const uptime = process.uptime();
       
+      // Note: For production, use a proper CPU monitoring library like 'os-utils' or 'systeminformation'
+      // This simplified calculation provides an approximation
+      const cpuUsagePercent = this.getCPUUsagePercent();
+      
       res.json({
         cpu: {
-          usage: Math.min(process.cpuUsage().user / 1000000 / uptime, 100).toFixed(2),
-          unit: '%'
+          usage: cpuUsagePercent.toFixed(2),
+          unit: '%',
+          note: 'Simplified calculation - use proper monitoring in production'
         },
         memory: {
           usage: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2),
@@ -267,6 +272,34 @@ export class APIServer {
     if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
     
     return parts.join(' ');
+  }
+
+  private lastCpuUsage: { time: number; usage: NodeJS.CpuUsage } | null = null;
+
+  private getCPUUsagePercent(): number {
+    // Simple approximation based on process CPU usage
+    // For production, use a library like 'os-utils' or 'systeminformation'
+    const currentUsage = process.cpuUsage();
+    const currentTime = Date.now();
+    
+    if (!this.lastCpuUsage) {
+      this.lastCpuUsage = { time: currentTime, usage: currentUsage };
+      // Return a default value on first call
+      return 5.0;
+    }
+    
+    const elapsedTime = (currentTime - this.lastCpuUsage.time) * 1000; // Convert to microseconds
+    const userDiff = currentUsage.user - this.lastCpuUsage.usage.user;
+    const systemDiff = currentUsage.system - this.lastCpuUsage.usage.system;
+    const totalDiff = userDiff + systemDiff;
+    
+    // Calculate percentage (CPU time used / elapsed wall time)
+    const cpuPercent = Math.min((totalDiff / elapsedTime) * 100, 100);
+    
+    // Update for next call
+    this.lastCpuUsage = { time: currentTime, usage: currentUsage };
+    
+    return cpuPercent;
   }
 
   private simulateAction(intent: any): any {
