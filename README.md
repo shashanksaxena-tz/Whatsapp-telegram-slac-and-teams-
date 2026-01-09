@@ -236,6 +236,20 @@ src/
 - No hardcoded credentials
 - Secure webhook handling for platforms
 
+## 📝 Documentation
+
+Comprehensive guides are available:
+
+- **[README.md](README.md)** - Quick start and basic usage
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
+- **[MCP_INTEGRATION.md](MCP_INTEGRATION.md)** - MCP server integration guide
+- **[AGENTIC_FLOWS.md](AGENTIC_FLOWS.md)** - Autonomous AI agent patterns and flows
+- **[MCP_EXTENSION_GUIDE.md](MCP_EXTENSION_GUIDE.md)** - Advanced MCP integration patterns
+- **[NEXT_STEPS_AND_ROADMAP.md](NEXT_STEPS_AND_ROADMAP.md)** - Development roadmap and next steps
+- **[ARCHITECTURE_AND_ROADMAP.md](ARCHITECTURE_AND_ROADMAP.md)** - Technical architecture overview
+- **[TOKEN_GENERATION.md](TOKEN_GENERATION.md)** - Platform token generation guides
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Implementation details
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
