@@ -236,15 +236,20 @@ export class APIServer {
           });
         }
 
-        const { SentimentAnalyzer } = require('../ai/sentiment-analyzer');
-        const analyzer = new SentimentAnalyzer();
-        const results = analyzer.analyzeBatch(messages);
-        
-        res.json({
-          success: true,
-          results,
-          count: results.length,
-          timestamp: new Date().toISOString()
+        // Use module import at runtime
+        import('../ai/sentiment-analyzer').then(({ SentimentAnalyzer }) => {
+          const analyzer = new SentimentAnalyzer();
+          const results = analyzer.analyzeBatch(messages);
+          
+          res.json({
+            success: true,
+            results,
+            count: results.length,
+            timestamp: new Date().toISOString()
+          });
+        }).catch((error: any) => {
+          logger.error('Error loading sentiment analyzer:', error);
+          res.status(500).json({ error: error.message });
         });
       } catch (error: any) {
         logger.error('Error in batch sentiment analysis:', error);

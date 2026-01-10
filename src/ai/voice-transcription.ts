@@ -88,7 +88,7 @@ export class VoiceTranscriptionService {
     filePath: string,
     options: TranscriptionOptions = {}
   ): Promise<TranscriptionResult> {
-    const fs = require('fs');
+    const fs = await import('fs');
     const audioBuffer = fs.readFileSync(filePath);
     return await this.transcribe(audioBuffer, options);
   }

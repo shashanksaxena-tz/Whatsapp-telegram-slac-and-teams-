@@ -13,6 +13,7 @@ export class MessageRouter {
   private mcpClient: MCPClient | null;
   private sentimentAnalyzer: SentimentAnalyzer;
   private vectorMemory: VectorMemoryService | null = null;
+  private vectorMemoryInitialized: boolean = false;
 
   constructor(
     aiProvider: AIProvider, 
@@ -25,10 +26,21 @@ export class MessageRouter {
     
     if (enableVectorMemory) {
       this.vectorMemory = new VectorMemoryService();
-      this.vectorMemory.initialize().catch(error => {
+      // Initialize asynchronously but don't block constructor
+      this.initializeVectorMemory();
+    }
+  }
+
+  private async initializeVectorMemory(): Promise<void> {
+    if (this.vectorMemory) {
+      try {
+        await this.vectorMemory.initialize();
+        this.vectorMemoryInitialized = true;
+        logger.info('Vector memory initialized successfully');
+      } catch (error) {
         logger.warn('Vector memory initialization failed:', error);
         this.vectorMemory = null;
-      });
+      }
     }
   }
 
@@ -61,8 +73,8 @@ export class MessageRouter {
         return;
       }
 
-      // Store message in vector memory if enabled
-      if (this.vectorMemory) {
+      // Store message in vector memory if enabled and initialized
+      if (this.vectorMemory && this.vectorMemoryInitialized) {
         try {
           await this.vectorMemory.storeMessage({
             id: `${message.platform}-${message.id}`,
@@ -82,7 +94,7 @@ export class MessageRouter {
 
       // Get conversation context from vector memory
       let context = {};
-      if (this.vectorMemory) {
+      if (this.vectorMemory && this.vectorMemoryInitialized) {
         try {
           const memoryContext = await this.vectorMemory.getConversationContext(
             message.text,

@@ -252,6 +252,8 @@ export class VectorMemoryService {
 
   /**
    * Delete old memories (cleanup)
+   * Note: For large datasets, consider using a more efficient approach
+   * such as partitioning by date or using database-level retention policies
    */
   async deleteOldMemories(olderThanDays: number = 90): Promise<number> {
     if (!this.isInitialized || !this.collection) {
@@ -261,8 +263,9 @@ export class VectorMemoryService {
     try {
       const cutoffTimestamp = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
 
-      // ChromaDB doesn't support direct timestamp comparison in where clause
-      // We need to fetch and delete manually
+      // Note: This approach fetches all documents which is inefficient for large datasets
+      // Consider implementing batch processing or using a more efficient filter strategy
+      // For production, implement pagination or use external cleanup job
       const allDocs = await this.collection.get({});
       
       const idsToDelete: string[] = [];
@@ -276,13 +279,21 @@ export class VectorMemoryService {
       }
 
       if (idsToDelete.length > 0) {
-        await this.collection.delete({
-          ids: idsToDelete
-        });
-        logger.info(`Deleted ${idsToDelete.length} old memories`);
+        // Process in batches to avoid overwhelming the database
+        const batchSize = 100;
+        let deleted = 0;
+        
+        for (let i = 0; i < idsToDelete.length; i += batchSize) {
+          const batch = idsToDelete.slice(i, i + batchSize);
+          await this.collection.delete({ ids: batch });
+          deleted += batch.length;
+        }
+        
+        logger.info(`Deleted ${deleted} old memories`);
+        return deleted;
       }
 
-      return idsToDelete.length;
+      return 0;
     } catch (error) {
       logger.error('Failed to delete old memories:', error);
       throw error;
