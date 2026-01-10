@@ -201,6 +201,118 @@ export class APIServer {
       }
     });
 
+    // Analyze sentiment endpoint
+    this.app.post('/api/sentiment', (req: Request, res: Response) => {
+      try {
+        const { text } = req.body;
+
+        if (!text) {
+          return res.status(400).json({ 
+            error: 'Missing required field: text' 
+          });
+        }
+
+        const sentiment = this.router.analyzeSentiment(text);
+        
+        res.json({
+          success: true,
+          sentiment,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        logger.error('Error analyzing sentiment:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Batch sentiment analysis endpoint
+    this.app.post('/api/sentiment/batch', (req: Request, res: Response) => {
+      try {
+        const { messages } = req.body;
+
+        if (!messages || !Array.isArray(messages)) {
+          return res.status(400).json({ 
+            error: 'Missing required field: messages (array)' 
+          });
+        }
+
+        const { SentimentAnalyzer } = require('../ai/sentiment-analyzer');
+        const analyzer = new SentimentAnalyzer();
+        const results = analyzer.analyzeBatch(messages);
+        
+        res.json({
+          success: true,
+          results,
+          count: results.length,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        logger.error('Error in batch sentiment analysis:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Memory query endpoint
+    this.app.post('/api/memory/query', async (req: Request, res: Response) => {
+      try {
+        const vectorMemory = this.router.getVectorMemory();
+        
+        if (!vectorMemory) {
+          return res.status(503).json({ 
+            error: 'Vector memory service not enabled' 
+          });
+        }
+
+        const { text, userId, platform, nResults } = req.body;
+
+        if (!text) {
+          return res.status(400).json({ 
+            error: 'Missing required field: text' 
+          });
+        }
+
+        const results = await vectorMemory.queryMemory(text, {
+          userId,
+          platform,
+          nResults: nResults || 5
+        });
+        
+        res.json({
+          success: true,
+          results,
+          count: results.length,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        logger.error('Error querying memory:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // Memory stats endpoint
+    this.app.get('/api/memory/stats', async (req: Request, res: Response) => {
+      try {
+        const vectorMemory = this.router.getVectorMemory();
+        
+        if (!vectorMemory) {
+          return res.status(503).json({ 
+            error: 'Vector memory service not enabled' 
+          });
+        }
+
+        const stats = await vectorMemory.getStats();
+        
+        res.json({
+          success: true,
+          stats,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error: any) {
+        logger.error('Error getting memory stats:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Direct MCP request
     this.app.post('/api/mcp', async (req: Request, res: Response) => {
       try {
