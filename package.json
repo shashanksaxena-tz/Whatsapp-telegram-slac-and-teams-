@@ -25,13 +25,17 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.10.0",
+    "@google-cloud/speech": "^7.2.1",
     "@slack/bolt": "^3.15.0",
     "axios": "^1.6.2",
     "botbuilder": "^4.21.0",
+    "chromadb": "^3.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "natural": "^8.1.0",
     "openai": "^4.20.1",
     "qrcode-terminal": "^0.12.0",
+    "sentiment": "^5.0.2",
     "telegraf": "^4.15.0",
     "whatsapp-web.js": "^1.23.0"
   },

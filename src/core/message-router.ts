@@ -1,5 +1,7 @@
 import { Message, PlatformAdapter, AIProvider, MCPClient, Intent } from '../types';
 import { logger } from '../utils/logger';
+import { SentimentAnalyzer } from '../ai/sentiment-analyzer';
+import { VectorMemoryService } from '../ai/vector-memory';
 
 /**
  * Message Router
@@ -9,10 +11,37 @@ export class MessageRouter {
   private adapters: Map<string, PlatformAdapter> = new Map();
   private aiProvider: AIProvider;
   private mcpClient: MCPClient | null;
+  private sentimentAnalyzer: SentimentAnalyzer;
+  private vectorMemory: VectorMemoryService | null = null;
+  private vectorMemoryInitialized: boolean = false;
 
-  constructor(aiProvider: AIProvider, mcpClient: MCPClient | null = null) {
+  constructor(
+    aiProvider: AIProvider, 
+    mcpClient: MCPClient | null = null,
+    enableVectorMemory: boolean = false
+  ) {
     this.aiProvider = aiProvider;
     this.mcpClient = mcpClient;
+    this.sentimentAnalyzer = new SentimentAnalyzer();
+    
+    if (enableVectorMemory) {
+      this.vectorMemory = new VectorMemoryService();
+      // Initialize asynchronously but don't block constructor
+      this.initializeVectorMemory();
+    }
+  }
+
+  private async initializeVectorMemory(): Promise<void> {
+    if (this.vectorMemory) {
+      try {
+        await this.vectorMemory.initialize();
+        this.vectorMemoryInitialized = true;
+        logger.info('Vector memory initialized successfully');
+      } catch (error) {
+        logger.warn('Vector memory initialization failed:', error);
+        this.vectorMemory = null;
+      }
+    }
   }
 
   registerAdapter(adapter: PlatformAdapter): void {
@@ -25,11 +54,67 @@ export class MessageRouter {
     try {
       logger.info(`Received message from ${message.platform}: ${message.text}`);
 
+      // Step 0: Analyze sentiment
+      const sentiment = this.sentimentAnalyzer.analyze(message.text);
+      logger.debug(`Sentiment analysis:`, sentiment);
+
+      // Check if escalation is needed
+      if (sentiment.shouldEscalate) {
+        const escalationReason = this.sentimentAnalyzer.getEscalationReason(sentiment);
+        logger.warn(`Message requires escalation: ${escalationReason}`);
+        
+        // Send escalation notice
+        await this.sendResponse(
+          message.platform,
+          message.chatId,
+          'I understand you\'re having difficulties. Let me connect you with a human representative who can better assist you.'
+        );
+        // In production, this would route to a human agent
+        return;
+      }
+
+      // Store message in vector memory if enabled and initialized
+      if (this.vectorMemory && this.vectorMemoryInitialized) {
+        try {
+          await this.vectorMemory.storeMessage({
+            id: `${message.platform}-${message.id}`,
+            text: message.text,
+            metadata: {
+              userId: message.userId,
+              platform: message.platform,
+              timestamp: message.timestamp.getTime(),
+              sentiment: sentiment.sentiment,
+              emotion: sentiment.emotion
+            }
+          });
+        } catch (error) {
+          logger.warn('Failed to store message in vector memory:', error);
+        }
+      }
+
+      // Get conversation context from vector memory
+      let context = {};
+      if (this.vectorMemory && this.vectorMemoryInitialized) {
+        try {
+          const memoryContext = await this.vectorMemory.getConversationContext(
+            message.text,
+            message.userId,
+            message.platform
+          );
+          context = { conversationHistory: memoryContext.contextText };
+        } catch (error) {
+          logger.warn('Failed to retrieve conversation context:', error);
+        }
+      }
+
       // Step 1: Process natural language to extract intent
       const intent = await this.aiProvider.processNaturalLanguage(message.text, {
         platform: message.platform,
         userId: message.userId,
         userName: message.userName,
+        sentiment: sentiment.sentiment,
+        emotion: sentiment.emotion,
+        ...context
       });
 
       logger.debug(`Extracted intent:`, intent);
@@ -47,6 +132,8 @@ export class MessageRouter {
             userId: message.userId,
             userName: message.userName,
             chatId: message.chatId,
+            sentiment: sentiment.sentiment,
+            emotion: sentiment.emotion
           },
         });
 
@@ -61,6 +148,8 @@ export class MessageRouter {
       // Step 3: Generate natural language response
       const responseText = await this.aiProvider.generateResponse(intent, result, {
         platform: message.platform,
+        sentiment: sentiment.sentiment,
+        emotion: sentiment.emotion
       });
 
       // Step 4: Send response back to the platform
@@ -123,6 +212,40 @@ export class MessageRouter {
     } else {
       logger.error(`No adapter found for platform: ${platform}`);
     }
+  }
+
+  /**
+   * Public method to send a message through a platform adapter
+   * Used by API endpoints to send messages programmatically
+   */
+  async sendMessage(platform: string, chatId: string, text: string, metadata?: Record<string, any>): Promise<void> {
+    const adapter = this.adapters.get(platform);
+    if (!adapter) {
+      throw new Error(`Platform adapter not found or not enabled: ${platform}`);
+    }
+    await adapter.sendMessage(chatId, text, metadata);
+    logger.info(`Message sent to ${platform} chat ${chatId}`);
+  }
+
+  /**
+   * Get list of registered platform adapters
+   */
+  getRegisteredPlatforms(): string[] {
+    return Array.from(this.adapters.keys());
+  }
+
+  /**
+   * Analyze sentiment of a text
+   */
+  analyzeSentiment(text: string) {
+    return this.sentimentAnalyzer.analyze(text);
+  }
+
+  /**
+   * Get vector memory service
+   */
+  getVectorMemory(): VectorMemoryService | null {
+    return this.vectorMemory;
   }
 
   async shutdown(): Promise<void> {
