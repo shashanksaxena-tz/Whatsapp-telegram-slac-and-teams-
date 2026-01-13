@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  AGENT
+  MANAGER
+  ADMIN
+}
+
+enum Platform {
+  WHATSAPP
+  TELEGRAM
+  SLACK
+  TEAMS
+  WEB
+}
+
+enum ConversationStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum EscalationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  role          UserRole @default(AGENT)
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  preferences       UserPreference?
+  assignedConversations Conversation[] @relation("AssignedAgent")
+  escalationsAssigned   Escalation[]   @relation("AssignedTo")
+  escalationsTriggered  Escalation[]   @relation("TriggeredBy")
+  internalNotes         InternalNote[]
+  responseTemplates     ResponseTemplate[]
+}
+
+model UserPreference {
+  id                    String  @id @default(cuid())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme                 String  @default("dark")
+  notificationsJson     Json    @default("{}")
+  soundsJson            Json    @default("{}")
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  email        String?
+  phone        String?
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  mergedIntoId String?
+  mergedInto   Customer? @relation("MergedCustomers", fields: [mergedIntoId], references: [id])
+  mergedFrom   Customer[] @relation("MergedCustomers")
+
+  identities    CustomerIdentity[]
+  conversations Conversation[]
+}
+
+model CustomerIdentity {
+  id              String   @id @default(cuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  platform        Platform
+  platformUserId  String
+  platformUsername String?
+  createdAt       DateTime @default(now())
+
+  @@unique([platform, platformUserId])
+}
+
+model Conversation {
+  id              String             @id @default(cuid())
+  customerId      String
+  customer        Customer           @relation(fields: [customerId], references: [id])
+  platform        Platform
+  status          ConversationStatus @default(OPEN)
+  assignedAgentId String?
+  assignedAgent   User?              @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  resolvedAt      DateTime?
+
+  messages      Message[]
+  escalations   Escalation[]
+  internalNotes InternalNote[]
+}
+
+model Message {
+  id                String   @id @default(cuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType        String   // 'customer', 'agent', 'bot'
+  senderId          String?
+  content           String
+  sentimentScore    Float?
+  emotion           String?
+  platformMessageId String?
+  createdAt         DateTime @default(now())
+}
+
+model Escalation {
+  id              String             @id @default(cuid())
+  conversationId  String
+  conversation    Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  severity        EscalationSeverity
+  triggeredById   String?
+  triggeredBy     User?              @relation("TriggeredBy", fields: [triggeredById], references: [id])
+  assignedToId    String?
+  assignedTo      User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
+  resolvedAt      DateTime?
+  createdAt       DateTime           @default(now())
+}
+
+model InternalNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  content        String
+  createdAt      DateTime     @default(now())
+}
+
+model ResponseTemplate {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DailyMetric {
+  id                    String   @id @default(cuid())
+  date                  DateTime @db.Date
+  platform              Platform
+  totalConversations    Int      @default(0)
+  avgSentiment          Float    @default(0)
+  resolutionRate        Float    @default(0)
+  avgResponseTimeSeconds Int     @default(0)
+
+  @@unique([date, platform])
+}

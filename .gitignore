@@ -56,3 +56,5 @@ pids/
 
 # Git worktrees
 .worktrees/
+
+/src/generated/prisma
