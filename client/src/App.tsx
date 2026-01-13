@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 import CommandCenter from './pages/CommandCenter';
+import UnifiedInbox from './pages/UnifiedInbox';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="command-center" element={<CommandCenter />} />
+          <Route path="inbox" element={<UnifiedInbox />} />
           <Route path="chat" element={<Chat />} />
           <Route path="settings" element={<Settings />} />
           <Route path="logs" element={<Navigate to="/" replace />} />
