@@ -4,28 +4,70 @@ import StatusCard from '../components/dashboard/StatusCard';
 import NeuralNetwork from '../components/dashboard/NeuralNetwork';
 
 const Dashboard = () => {
-  // Mock data for now, real data will come from API
+  // Real-time data from API
   const [platforms, setPlatforms] = useState({
     whatsapp: { enabled: false, status: 'offline' },
-    telegram: { enabled: true, status: 'online' },
+    telegram: { enabled: false, status: 'offline' },
     slack: { enabled: false, status: 'offline' },
     teams: { enabled: false, status: 'offline' },
   });
 
+  const [metrics, setMetrics] = useState({
+    cpu: { usage: '0', unit: '%' },
+    memory: { usage: '0', unit: '%' },
+    uptime: { formatted: '0s' }
+  });
+
   useEffect(() => {
-    // Fetch real status
-    fetch('/api/platforms')
-      .then(res => res.json())
-      .then(data => {
-          // Map backend response to UI state
+    // Fetch platform status
+    const fetchStatus = () => {
+      fetch('/api/platforms')
+        .then(res => res.json())
+        .then(data => {
           setPlatforms({
-              whatsapp: { enabled: data.whatsapp.enabled, status: data.whatsapp.enabled ? 'online' : 'offline' },
-              telegram: { enabled: data.telegram.enabled, status: data.telegram.enabled ? 'online' : 'offline' },
-              slack: { enabled: data.slack.enabled, status: data.slack.enabled ? 'online' : 'offline' },
-              teams: { enabled: data.teams.enabled, status: data.teams.enabled ? 'online' : 'offline' },
+            whatsapp: { 
+              enabled: data.whatsapp.enabled, 
+              status: data.whatsapp.registered ? 'online' : 'offline' 
+            },
+            telegram: { 
+              enabled: data.telegram.enabled, 
+              status: data.telegram.registered ? 'online' : 'offline' 
+            },
+            slack: { 
+              enabled: data.slack.enabled, 
+              status: data.slack.registered ? 'online' : 'offline' 
+            },
+            teams: { 
+              enabled: data.teams.enabled, 
+              status: data.teams.registered ? 'online' : 'offline' 
+            },
           });
-      })
-      .catch(err => console.error("Failed to fetch status", err));
+        })
+        .catch(err => console.error("Failed to fetch platform status", err));
+    };
+
+    // Fetch system metrics
+    const fetchMetrics = () => {
+      fetch('/api/metrics')
+        .then(res => res.json())
+        .then(data => {
+          setMetrics(data);
+        })
+        .catch(err => console.error("Failed to fetch metrics", err));
+    };
+
+    // Initial fetch
+    fetchStatus();
+    fetchMetrics();
+
+    // Poll every 5 seconds
+    const statusInterval = setInterval(fetchStatus, 5000);
+    const metricsInterval = setInterval(fetchMetrics, 2000);
+
+    return () => {
+      clearInterval(statusInterval);
+      clearInterval(metricsInterval);
+    };
   }, []);
 
   return (
@@ -93,34 +135,40 @@ const Dashboard = () => {
         <div className="bg-glass border border-glass-border rounded-xl p-6">
            <h3 className="text-lg font-bold mb-4">System Health</h3>
            <div className="space-y-6">
-             {/* Mock Health Bars */}
+             {/* Real-time Health Metrics */}
              <div>
                <div className="flex justify-between text-sm mb-1">
                  <span className="text-gray-400">CPU Usage</span>
-                 <span className="text-primary">12%</span>
+                 <span className="text-primary">{metrics.cpu?.usage || 0}%</span>
                </div>
                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-primary w-[12%] rounded-full shadow-[0_0_10px_theme('colors.primary.DEFAULT')]" />
+                 <div 
+                   className="h-full bg-primary rounded-full shadow-[0_0_10px_theme('colors.primary.DEFAULT')]" 
+                   style={{ width: `${metrics.cpu?.usage || 0}%` }}
+                 />
                </div>
              </div>
 
              <div>
                <div className="flex justify-between text-sm mb-1">
                  <span className="text-gray-400">Memory</span>
-                 <span className="text-secondary">48%</span>
+                 <span className="text-secondary">{metrics.memory?.usage || 0}%</span>
                </div>
                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-secondary w-[48%] rounded-full shadow-[0_0_10px_theme('colors.secondary.DEFAULT')]" />
+                 <div 
+                   className="h-full bg-secondary rounded-full shadow-[0_0_10px_theme('colors.secondary.DEFAULT')]" 
+                   style={{ width: `${metrics.memory?.usage || 0}%` }}
+                 />
                </div>
              </div>
 
              <div>
                <div className="flex justify-between text-sm mb-1">
-                 <span className="text-gray-400">API Quota</span>
-                 <span className="text-accent">65%</span>
+                 <span className="text-gray-400">Uptime</span>
+                 <span className="text-accent">{metrics.uptime?.formatted || '0s'}</span>
                </div>
                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                 <div className="h-full bg-accent w-[65%] rounded-full shadow-[0_0_10px_theme('colors.accent.DEFAULT')]" />
+                 <div className="h-full bg-accent w-full rounded-full shadow-[0_0_10px_theme('colors.accent.DEFAULT')]" />
                </div>
              </div>
            </div>

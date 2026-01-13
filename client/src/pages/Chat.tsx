@@ -42,26 +42,46 @@ const Chat = () => {
     setIsTyping(true);
 
     try {
-      // Direct API call to the backend message endpoint
-      // Assuming we treat this "web chat" as another platform or use a specific endpoint
-      // For now, simulating response or using the generic message endpoint if applicable
-      // But looking at server.ts, /api/message requires platform, chatId, text.
-      // We'll mock it for the UI demo or implement a loopback.
+      // Call the actual backend chat API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMsg.content,
+          context: {
+            source: 'web-ui',
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
 
-      // Simulating a delay for "thinking"
-      setTimeout(() => {
-        const aiMsg: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: `I've processed your request: "${userMsg.content}". (Note: Connect this to the real backend logic in production)`,
-            timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiMsg]);
-        setIsTyping(false);
-      }, 1500);
+      if (!response.ok) {
+        throw new Error('Failed to process message');
+      }
+
+      const data = await response.json();
+      
+      const aiMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.response || 'I processed your request.',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, aiMsg]);
+      setIsTyping(false);
 
     } catch (error) {
       console.error(error);
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMsg]);
       setIsTyping(false);
     }
   };

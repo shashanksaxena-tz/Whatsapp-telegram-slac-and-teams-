@@ -4,6 +4,7 @@ AI-powered integration system for WhatsApp, Telegram, Slack, and Microsoft Teams
 
 ## 🌟 Features
 
+### Core Features
 - **Multi-Platform Support**: Seamlessly integrates with WhatsApp, Telegram, Slack, and Microsoft Teams
 - **Natural Language Processing**: Uses AI (OpenAI GPT or Anthropic Claude) to understand user intent from natural language
 - **MCP Server Integration**: Connects to Model Context Protocol servers for advanced AI agent interactions
@@ -11,6 +12,13 @@ AI-powered integration system for WhatsApp, Telegram, Slack, and Microsoft Teams
 - **REST API**: Provides HTTP endpoints for programmatic access
 - **Intent Recognition**: Automatically extracts actions and entities from user messages
 - **Flexible Architecture**: Modular design allows easy addition of new platforms or AI providers
+
+### 🆕 Phase 2 Intelligence Features (Production Ready)
+- **Sentiment Analysis**: Real-time emotion detection (happy, sad, angry, frustrated, etc.) with automatic escalation for negative interactions
+- **Voice Transcription**: Dual-service voice-to-text with Google Cloud Speech and OpenAI Whisper
+- **Vector Memory**: Long-term memory using ChromaDB for context-aware conversations and RAG
+- **Automatic Escalation**: Routes angry/frustrated customers to human agents
+- **Conversation Context**: AI responses enhanced with relevant past conversation history
 
 ## 🏗️ Architecture
 
@@ -40,10 +48,14 @@ User Message (Any Platform)
 
 - Node.js 18+ and npm
 - API keys for:
-  - OpenAI or Anthropic Claude
+  - OpenAI or Anthropic Claude (required)
   - Telegram Bot Token (if using Telegram)
   - Slack Bot Token (if using Slack)
   - Microsoft Teams App credentials (if using Teams)
+- Optional (for Phase 2 features):
+  - ChromaDB running locally or remote (for vector memory)
+  - Google Cloud credentials (for voice transcription)
+  - OpenAI API key also enables Whisper voice transcription
 
 ### Installation
 
@@ -164,6 +176,28 @@ curl -X POST http://localhost:3000/api/message \
   }'
 ```
 
+#### Analyze sentiment:
+```bash
+curl -X POST http://localhost:3000/api/sentiment \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_secret_key" \
+  -d '{
+    "text": "I am so frustrated with this service!"
+  }'
+```
+
+#### Query conversation memory:
+```bash
+curl -X POST http://localhost:3000/api/memory/query \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_secret_key" \
+  -d '{
+    "text": "pricing information",
+    "userId": "user-123",
+    "nResults": 5
+  }'
+```
+
 #### Make an MCP request:
 ```bash
 curl -X POST http://localhost:3000/api/mcp \
@@ -235,6 +269,21 @@ src/
 - Environment-based configuration for sensitive data
 - No hardcoded credentials
 - Secure webhook handling for platforms
+
+## 📝 Documentation
+
+Comprehensive guides are available:
+
+- **[README.md](README.md)** - Quick start and basic usage
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
+- **[MCP_INTEGRATION.md](MCP_INTEGRATION.md)** - MCP server integration guide
+- **[AGENTIC_FLOWS.md](AGENTIC_FLOWS.md)** - Autonomous AI agent patterns and flows
+- **[MCP_EXTENSION_GUIDE.md](MCP_EXTENSION_GUIDE.md)** - Advanced MCP integration patterns
+- **[NEXT_STEPS_AND_ROADMAP.md](NEXT_STEPS_AND_ROADMAP.md)** - Development roadmap and next steps
+- **[PHASE2_FEATURES.md](PHASE2_FEATURES.md)** - 🆕 Sentiment analysis, voice transcription, and vector memory guide
+- **[ARCHITECTURE_AND_ROADMAP.md](ARCHITECTURE_AND_ROADMAP.md)** - Technical architecture overview
+- **[TOKEN_GENERATION.md](TOKEN_GENERATION.md)** - Platform token generation guides
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Implementation details
 
 ## 🤝 Contributing
 
