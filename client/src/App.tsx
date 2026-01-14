@@ -7,6 +7,7 @@ import Settings from './pages/Settings';
 import CommandCenter from './pages/CommandCenter';
 import UnifiedInbox from './pages/UnifiedInbox';
 import CustomerProfile from './pages/CustomerProfile';
+import LiveMonitoring from './pages/LiveMonitoring';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="command-center" element={<CommandCenter />} />
           <Route path="inbox" element={<UnifiedInbox />} />
           <Route path="customers" element={<CustomerProfile />} />
+          <Route path="monitoring" element={<LiveMonitoring />} />
           <Route path="chat" element={<Chat />} />
           <Route path="settings" element={<Settings />} />
           <Route path="logs" element={<Navigate to="/" replace />} />
