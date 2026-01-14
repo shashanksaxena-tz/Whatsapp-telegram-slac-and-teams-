@@ -87,7 +87,7 @@ function getTrendDisplay(
  * Metric Card Component
  * A reusable card for displaying a single metric with optional trend indicator
  */
-export function MetricCard({
+export const MetricCard = React.memo(function MetricCard({
   label,
   value,
   icon: Icon,
@@ -157,7 +157,7 @@ export function MetricCard({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Metric Card Grid Component
@@ -169,7 +169,7 @@ interface MetricCardGridProps {
   className?: string;
 }
 
-export function MetricCardGrid({
+export const MetricCardGrid = React.memo(function MetricCardGrid({
   children,
   columns = 4,
   className,
@@ -185,6 +185,6 @@ export function MetricCardGrid({
       {children}
     </div>
   );
-}
+});
 
 export default MetricCard;

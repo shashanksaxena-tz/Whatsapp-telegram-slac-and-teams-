@@ -47,6 +47,14 @@ export const chartColors = {
 } as const;
 
 /**
+ * Status colors for conversation charts
+ */
+export const statusColors = {
+  resolved: '#22C55E',  // Green
+  open: '#3B82F6',      // Blue
+} as const;
+
+/**
  * Platform display names for accessibility labels
  */
 export const platformNames: Record<string, string> = {

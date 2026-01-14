@@ -31,7 +31,7 @@ interface SentimentTrendChartProps {
 /**
  * Custom tooltip for sentiment chart
  */
-function CustomTooltip({
+const CustomTooltip = React.memo(function CustomTooltip({
   active,
   payload,
   label,
@@ -68,7 +68,7 @@ function CustomTooltip({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Get gradient ID based on whether value is positive or negative
@@ -83,7 +83,7 @@ function getGradientColor(score: number): string {
  * Sentiment Trend Chart Component
  * Displays sentiment scores over time with color-coded visualization
  */
-export function SentimentTrendChart({
+export const SentimentTrendChart = React.memo(function SentimentTrendChart({
   data,
   className,
   title = 'Sentiment Trend',
@@ -226,6 +226,6 @@ export function SentimentTrendChart({
       </div>
     </div>
   );
-}
+});
 
 export default SentimentTrendChart;

@@ -44,7 +44,7 @@ function formatTime(minutes: number): string {
 /**
  * Custom tooltip for response time chart
  */
-function CustomTooltip({
+const CustomTooltip = React.memo(function CustomTooltip({
   active,
   payload,
   label,
@@ -82,13 +82,13 @@ function CustomTooltip({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Response Time Chart Component
  * Displays area chart showing average response time trends with optional SLA threshold
  */
-export function ResponseTimeChart({
+export const ResponseTimeChart = React.memo(function ResponseTimeChart({
   data,
   className,
   title = 'Response Time Trend',
@@ -106,8 +106,10 @@ export function ResponseTimeChart({
     ? (data.filter((d) => d.avgResponseTime <= slaThreshold).length / data.length) * 100
     : null;
 
-  // Calculate max value for Y axis
-  const maxValue = Math.max(...data.map((d) => d.avgResponseTime), slaThreshold || 0);
+  // Calculate max value for Y axis with graceful handling of empty datasets
+  const dataValues = data.map((d) => d.avgResponseTime);
+  const maxDataValue = dataValues.length > 0 ? Math.max(...dataValues) : 0;
+  const maxValue = Math.max(maxDataValue, slaThreshold || 0, 1); // Minimum of 1 to prevent collapsed axis
   const yAxisMax = Math.ceil(maxValue * 1.2);
 
   return (
@@ -247,6 +249,6 @@ export function ResponseTimeChart({
       </div>
     </div>
   );
-}
+});
 
 export default ResponseTimeChart;

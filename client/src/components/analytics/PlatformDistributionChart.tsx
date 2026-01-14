@@ -36,7 +36,7 @@ function getPlatformColor(platform: string): string {
 /**
  * Custom tooltip for distribution chart
  */
-function CustomTooltip({
+const CustomTooltip = React.memo(function CustomTooltip({
   active,
   payload,
 }: {
@@ -64,12 +64,12 @@ function CustomTooltip({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Custom legend component
  */
-function CustomLegendContent({
+const CustomLegendContent = React.memo(function CustomLegendContent({
   payload,
 }: {
   payload?: Array<{ value: string; color: string; payload: { percentage: number; count: number } }>;
@@ -96,13 +96,13 @@ function CustomLegendContent({
       })}
     </div>
   );
-}
+});
 
 /**
  * Platform Distribution Chart Component
  * Displays pie/donut chart showing conversation distribution by platform
  */
-export function PlatformDistributionChart({
+export const PlatformDistributionChart = React.memo(function PlatformDistributionChart({
   data,
   className,
   title = 'Platform Distribution',
@@ -216,6 +216,6 @@ export function PlatformDistributionChart({
       </div>
     </div>
   );
-}
+});
 
 export default PlatformDistributionChart;

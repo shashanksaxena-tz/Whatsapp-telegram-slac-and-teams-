@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { platformColors, platformNames } from '../../lib/constants';
+import { platformColors, platformNames, statusColors } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 
 /**
@@ -31,7 +31,7 @@ interface ConversationVolumeChartProps {
 /**
  * Custom tooltip for volume chart
  */
-function CustomTooltip({
+const CustomTooltip = React.memo(function CustomTooltip({
   active,
   payload,
   label,
@@ -69,18 +69,18 @@ function CustomTooltip({
       </div>
     </div>
   );
-}
+});
 
 /**
  * Custom legend component
  */
-function CustomLegend() {
+const CustomLegend = React.memo(function CustomLegend() {
   return (
     <div className="flex items-center justify-center gap-6 mt-4 text-sm">
       <div className="flex items-center gap-2">
         <span
           className="w-3 h-3 rounded"
-          style={{ backgroundColor: '#22C55E' }}
+          style={{ backgroundColor: statusColors.resolved }}
           aria-hidden="true"
         />
         <span className="text-gray-400">Resolved</span>
@@ -88,20 +88,20 @@ function CustomLegend() {
       <div className="flex items-center gap-2">
         <span
           className="w-3 h-3 rounded"
-          style={{ backgroundColor: '#3B82F6' }}
+          style={{ backgroundColor: statusColors.open }}
           aria-hidden="true"
         />
         <span className="text-gray-400">Open</span>
       </div>
     </div>
   );
-}
+});
 
 /**
  * Conversation Volume Chart Component
  * Displays stacked bar chart showing conversation volume by platform
  */
-export function ConversationVolumeChart({
+export const ConversationVolumeChart = React.memo(function ConversationVolumeChart({
   data,
   className,
   title = 'Conversation Volume by Platform',
@@ -169,14 +169,14 @@ export function ConversationVolumeChart({
             <Bar
               dataKey="resolved"
               stackId="a"
-              fill="#22C55E"
+              fill={statusColors.resolved}
               radius={[0, 0, 0, 0]}
               name="Resolved"
             />
             <Bar
               dataKey="open"
               stackId="a"
-              fill="#3B82F6"
+              fill={statusColors.open}
               radius={[4, 4, 0, 0]}
               name="Open"
             />
@@ -187,6 +187,6 @@ export function ConversationVolumeChart({
       <CustomLegend />
     </div>
   );
-}
+});
 
 export default ConversationVolumeChart;
