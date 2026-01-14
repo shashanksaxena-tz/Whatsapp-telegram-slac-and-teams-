@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { Search, Mail, Phone, Calendar, MessageCircle, TrendingUp, TrendingDown, User, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { CustomerCard, type Customer } from '../components/customers/CustomerCard';
@@ -132,7 +132,9 @@ const mockTimelineEvents: Record<string, TimelineEvent[]> = {
 export default function CustomerProfile() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading] = useState(false);
+
+  // Map of refs for customer list items for keyboard navigation focus management
+  const customerItemRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
   // Filter customers based on search query
   const filteredCustomers = useMemo(() => {
@@ -170,9 +172,8 @@ export default function CustomerProfile() {
       const nextCustomer = filteredCustomers[nextIndex];
       if (nextCustomer) {
         setSelectedCustomerId(nextCustomer.id);
-        // Focus next item
-        const nextElement = document.querySelector(`[data-customer-index="${nextIndex}"]`) as HTMLElement;
-        nextElement?.focus();
+        // Focus next item using ref
+        customerItemRefs.current.get(nextIndex)?.focus();
       }
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
@@ -180,9 +181,8 @@ export default function CustomerProfile() {
       const prevCustomer = filteredCustomers[prevIndex];
       if (prevCustomer) {
         setSelectedCustomerId(prevCustomer.id);
-        // Focus previous item
-        const prevElement = document.querySelector(`[data-customer-index="${prevIndex}"]`) as HTMLElement;
-        prevElement?.focus();
+        // Focus previous item using ref
+        customerItemRefs.current.get(prevIndex)?.focus();
       }
     }
   }, [filteredCustomers]);
@@ -228,11 +228,7 @@ export default function CustomerProfile() {
           role="listbox"
           aria-label="Customer list"
         >
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
-            </div>
-          ) : filteredCustomers.length === 0 ? (
+          {filteredCustomers.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <User className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>No customers found</p>
@@ -244,7 +240,13 @@ export default function CustomerProfile() {
             filteredCustomers.map((customer, index) => (
               <div
                 key={customer.id}
-                data-customer-index={index}
+                ref={(el) => {
+                  if (el) {
+                    customerItemRefs.current.set(index, el);
+                  } else {
+                    customerItemRefs.current.delete(index);
+                  }
+                }}
                 tabIndex={0}
                 role="option"
                 aria-selected={selectedCustomerId === customer.id}
@@ -384,7 +386,7 @@ export default function CustomerProfile() {
             {/* Activity Timeline */}
             <section className="flex-1 overflow-y-auto p-6">
               <h2 className="text-lg font-semibold mb-4">Activity Timeline</h2>
-              <CustomerTimeline events={timelineEvents} isLoading={isLoading} />
+              <CustomerTimeline events={timelineEvents} />
             </section>
           </>
         )}
