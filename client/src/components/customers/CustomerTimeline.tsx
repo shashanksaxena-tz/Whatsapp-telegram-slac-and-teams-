@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageCircle, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '../../lib/utils';
+import { platformIcons, platformNames, safeParseDate } from '../../lib/constants';
 
 export interface TimelineEvent {
   id: string;
@@ -32,13 +33,6 @@ const eventColors: Record<string, string> = {
   message: 'bg-gray-500',
 };
 
-const platformIcons: Record<string, string> = {
-  WHATSAPP: '📱',
-  TELEGRAM: '✈️',
-  SLACK: '💼',
-  TEAMS: '🏢',
-  WEB: '🌐',
-};
 
 export function CustomerTimeline({ events, isLoading }: CustomerTimelineProps) {
   if (isLoading) {
@@ -60,15 +54,20 @@ export function CustomerTimeline({ events, isLoading }: CustomerTimelineProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <ol role="list" aria-label="Customer activity timeline" className="space-y-4">
       {events.map((event, index) => {
         const Icon = eventIcons[event.type] || MessageCircle;
         const colorClass = eventColors[event.type] || eventColors.message;
-        const time = formatDistanceToNow(new Date(event.createdAt), { addSuffix: true });
-        const fullDate = format(new Date(event.createdAt), 'PPp');
+        const eventDate = safeParseDate(event.createdAt);
+        const time = eventDate
+          ? formatDistanceToNow(eventDate, { addSuffix: true })
+          : 'Unknown';
+        const fullDate = eventDate
+          ? format(eventDate, 'PPp')
+          : 'Unknown date';
 
         return (
-          <div key={event.id} className="flex gap-3">
+          <li key={event.id} className="flex gap-3">
             {/* Timeline line */}
             <div className="flex flex-col items-center">
               <div className={cn('h-8 w-8 rounded-full flex items-center justify-center', colorClass)}>
@@ -82,7 +81,13 @@ export function CustomerTimeline({ events, isLoading }: CustomerTimelineProps) {
             {/* Content */}
             <div className="flex-1 pb-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm">{platformIcons[event.platform]}</span>
+                <span
+                  className="text-sm"
+                  role="img"
+                  aria-label={platformNames[event.platform] || event.platform}
+                >
+                  {platformIcons[event.platform]}
+                </span>
                 <span className="font-medium text-sm">{event.title}</span>
                 {event.sentimentScore !== undefined && (
                   <span className={cn(
@@ -100,9 +105,9 @@ export function CustomerTimeline({ events, isLoading }: CustomerTimelineProps) {
 
               <p className="text-xs text-gray-500 mt-1" title={fullDate}>{time}</p>
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }

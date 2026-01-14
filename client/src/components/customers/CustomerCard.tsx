@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Mail, Phone, MessageCircle, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../../lib/utils';
+import { platformIcons, platformNames, safeParseDate } from '../../lib/constants';
 
 export interface CustomerIdentity {
   platform: 'WHATSAPP' | 'TELEGRAM' | 'SLACK' | 'TEAMS' | 'WEB';
@@ -28,24 +29,31 @@ interface CustomerCardProps {
   isSelected?: boolean;
 }
 
-const platformIcons: Record<string, string> = {
-  WHATSAPP: '📱',
-  TELEGRAM: '✈️',
-  SLACK: '💼',
-  TEAMS: '🏢',
-  WEB: '🌐',
-};
-
 export function CustomerCard({ customer, onClick, isSelected }: CustomerCardProps) {
   const displayName = customer.name || customer.email || customer.phone || 'Unknown Customer';
   const initials = displayName.charAt(0).toUpperCase();
-  const lastContact = formatDistanceToNow(new Date(customer.lastContactAt), { addSuffix: true });
+
+  const lastContactDate = safeParseDate(customer.lastContactAt);
+  const lastContact = lastContactDate
+    ? formatDistanceToNow(lastContactDate, { addSuffix: true })
+    : 'Unknown';
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if ((event.key === 'Enter' || event.key === ' ') && onClick) {
+      event.preventDefault();
+      onClick();
+    }
+  }, [onClick]);
 
   const sentimentTrend = customer.avgSentiment >= 0;
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={`View customer ${displayName}, ${customer.totalConversations} conversations`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className={cn(
         'p-4 border border-white/10 rounded-xl transition-all cursor-pointer hover:bg-white/5',
         isSelected && 'ring-2 ring-primary bg-white/5'
@@ -87,11 +95,13 @@ export function CustomerCard({ customer, onClick, isSelected }: CustomerCardProp
 
           {/* Platforms */}
           <div className="flex items-center gap-1 mt-2">
-            {customer.identities.map((identity, idx) => (
+            {customer.identities.map((identity) => (
               <span
-                key={idx}
+                key={`${identity.platform}-${identity.platformUserId}`}
                 title={`${identity.platform}: ${identity.platformUsername || identity.platformUserId}`}
                 className="text-sm"
+                role="img"
+                aria-label={platformNames[identity.platform] || identity.platform}
               >
                 {platformIcons[identity.platform]}
               </span>
