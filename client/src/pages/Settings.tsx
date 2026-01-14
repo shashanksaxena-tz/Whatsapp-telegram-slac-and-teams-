@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Save,
   User,
@@ -111,6 +111,17 @@ const Settings: React.FC = () => {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveSuccessTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveSuccessTimeoutRef.current) {
+        clearTimeout(saveSuccessTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // New template form state
   const [newTemplate, setNewTemplate] = useState({
@@ -151,38 +162,41 @@ const Settings: React.FC = () => {
 
   // Template handlers
   const handleAddTemplate = useCallback(() => {
-    if (!newTemplate.name.trim()) {
-      setErrors((prev) => ({ ...prev, templateName: 'Template name is required' }));
-      return;
-    }
-    if (!newTemplate.content.trim()) {
+    setNewTemplate((currentTemplate) => {
+      if (!currentTemplate.name.trim()) {
+        setErrors((prev) => ({ ...prev, templateName: 'Template name is required' }));
+        return currentTemplate;
+      }
+      if (!currentTemplate.content.trim()) {
+        setErrors((prev) => ({
+          ...prev,
+          templateContent: 'Template content is required',
+        }));
+        return currentTemplate;
+      }
+
+      const template: ResponseTemplate = {
+        id: crypto.randomUUID(),
+        name: currentTemplate.name.trim(),
+        content: currentTemplate.content.trim(),
+        category: currentTemplate.category,
+      };
+
+      setSettings((prev) => ({
+        ...prev,
+        templates: [...prev.templates, template],
+      }));
+
+      setShowNewTemplateForm(false);
       setErrors((prev) => ({
         ...prev,
-        templateContent: 'Template content is required',
+        templateName: undefined,
+        templateContent: undefined,
       }));
-      return;
-    }
 
-    const template: ResponseTemplate = {
-      id: Date.now().toString(),
-      name: newTemplate.name.trim(),
-      content: newTemplate.content.trim(),
-      category: newTemplate.category,
-    };
-
-    setSettings((prev) => ({
-      ...prev,
-      templates: [...prev.templates, template],
-    }));
-
-    setNewTemplate({ name: '', content: '', category: 'general' });
-    setShowNewTemplateForm(false);
-    setErrors((prev) => ({
-      ...prev,
-      templateName: undefined,
-      templateContent: undefined,
-    }));
-  }, [newTemplate]);
+      return { name: '', content: '', category: 'general' };
+    });
+  }, []);
 
   const handleDeleteTemplate = useCallback((id: string) => {
     setSettings((prev) => ({
@@ -232,15 +246,32 @@ const Settings: React.FC = () => {
 
     setIsSaving(true);
     setSaveSuccess(false);
+    setSaveError(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Clear any existing timeout
+    if (saveSuccessTimeoutRef.current) {
+      clearTimeout(saveSuccessTimeoutRef.current);
+      saveSuccessTimeoutRef.current = null;
+    }
 
-    setIsSaving(false);
-    setSaveSuccess(true);
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Clear success message after 3 seconds
-    setTimeout(() => setSaveSuccess(false), 3000);
+      setIsSaving(false);
+      setSaveSuccess(true);
+
+      // Clear success message after 3 seconds
+      saveSuccessTimeoutRef.current = setTimeout(() => {
+        setSaveSuccess(false);
+        saveSuccessTimeoutRef.current = null;
+      }, 3000);
+    } catch (error) {
+      setIsSaving(false);
+      setSaveError(
+        error instanceof Error ? error.message : 'Failed to save settings. Please try again.'
+      );
+    }
   }, [settings.profile.name, settings.profile.email]);
 
   return (
@@ -303,6 +334,7 @@ const Settings: React.FC = () => {
             </div>
             <button
               type="button"
+              onClick={() => alert('Avatar upload coming soon!')}
               className="flex items-center gap-2 rounded-lg border border-white/10 bg-surface px-3 py-2 text-sm text-white transition-colors hover:border-white/20 hover:bg-white/5"
               aria-label="Upload avatar"
             >
@@ -554,6 +586,11 @@ const Settings: React.FC = () => {
             {saveSuccess && (
               <span className="text-sm text-green-400">
                 Settings saved successfully!
+              </span>
+            )}
+            {saveError && (
+              <span className="text-sm text-red-400">
+                {saveError}
               </span>
             )}
           </div>
