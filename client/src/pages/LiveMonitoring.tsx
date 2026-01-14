@@ -319,6 +319,14 @@ export default function LiveMonitoring() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Focus management for keyboard navigation in grid
+  useEffect(() => {
+    if (focusedIndex >= 0 && gridRef.current) {
+      const cell = gridRef.current.querySelector(`[data-grid-index="${focusedIndex}"]`) as HTMLElement;
+      cell?.focus();
+    }
+  }, [focusedIndex]);
+
   // Filter and sort conversations
   const filteredConversations = useMemo(() => {
     let result = [...mockConversations];
@@ -809,6 +817,8 @@ export default function LiveMonitoring() {
                 <div
                   key={conversation.id}
                   role="gridcell"
+                  tabIndex={focusedIndex === index ? 0 : -1}
+                  data-grid-index={index}
                   className={cn(
                     'outline-none',
                     focusedIndex === index && 'ring-2 ring-primary rounded-xl'
