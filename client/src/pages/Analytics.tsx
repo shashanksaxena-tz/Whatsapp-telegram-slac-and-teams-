@@ -33,6 +33,18 @@ const dateRangeOptions: Record<DateRangeOption, DateRangeConfig> = {
 };
 
 /**
+ * Simple seeded pseudo-random number generator for deterministic mock data
+ * Uses a linear congruential generator algorithm
+ */
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+/**
  * Generate mock sentiment data for the given date range
  */
 function generateSentimentData(days: number): SentimentDataPoint[] {
@@ -40,10 +52,12 @@ function generateSentimentData(days: number): SentimentDataPoint[] {
   const startDate = subDays(endDate, days - 1);
   const dates = eachDayOfInterval({ start: startDate, end: endDate });
 
-  return dates.map((date) => {
-    // Generate somewhat realistic sentiment fluctuations
+  return dates.map((date, index) => {
+    // Generate somewhat realistic sentiment fluctuations using seeded random
     const baseScore = 0.3;
-    const variation = (Math.random() - 0.5) * 0.8;
+    // Use index in seed for per-day consistency
+    const dayRandom = seededRandom(days * 1000 + index);
+    const variation = (dayRandom() - 0.5) * 0.8;
     const score = Math.max(-1, Math.min(1, baseScore + variation));
 
     return {
@@ -54,41 +68,43 @@ function generateSentimentData(days: number): SentimentDataPoint[] {
 }
 
 /**
- * Generate mock platform distribution data
+ * Generate mock platform distribution data (fixed values for consistency)
  */
 function generatePlatformDistribution(): PlatformDistributionDataPoint[] {
+  // Use fixed deterministic values instead of random
   return [
-    { platform: 'WHATSAPP', count: Math.floor(Math.random() * 200) + 150 },
-    { platform: 'TELEGRAM', count: Math.floor(Math.random() * 150) + 100 },
-    { platform: 'SLACK', count: Math.floor(Math.random() * 100) + 50 },
-    { platform: 'TEAMS', count: Math.floor(Math.random() * 80) + 40 },
+    { platform: 'WHATSAPP', count: 287 },
+    { platform: 'TELEGRAM', count: 189 },
+    { platform: 'SLACK', count: 124 },
+    { platform: 'TEAMS', count: 98 },
   ];
 }
 
 /**
- * Generate mock conversation volume data
+ * Generate mock conversation volume data (fixed values for consistency)
  */
 function generateConversationVolumeData(): ConversationVolumeDataPoint[] {
+  // Use fixed deterministic values instead of random
   return [
     {
       platform: 'WHATSAPP',
-      resolved: Math.floor(Math.random() * 150) + 100,
-      open: Math.floor(Math.random() * 50) + 20,
+      resolved: 215,
+      open: 42,
     },
     {
       platform: 'TELEGRAM',
-      resolved: Math.floor(Math.random() * 120) + 80,
-      open: Math.floor(Math.random() * 40) + 15,
+      resolved: 156,
+      open: 33,
     },
     {
       platform: 'SLACK',
-      resolved: Math.floor(Math.random() * 80) + 40,
-      open: Math.floor(Math.random() * 30) + 10,
+      resolved: 98,
+      open: 26,
     },
     {
       platform: 'TEAMS',
-      resolved: Math.floor(Math.random() * 60) + 30,
-      open: Math.floor(Math.random() * 25) + 8,
+      resolved: 72,
+      open: 18,
     },
   ];
 }
@@ -101,9 +117,10 @@ function generateResponseTimeData(days: number): ResponseTimeDataPoint[] {
   const startDate = subDays(endDate, days - 1);
   const dates = eachDayOfInterval({ start: startDate, end: endDate });
 
-  return dates.map((date) => {
-    // Generate response times between 5 and 45 minutes
-    const avgResponseTime = Math.random() * 40 + 5;
+  return dates.map((date, index) => {
+    // Generate response times between 5 and 45 minutes using seeded random
+    const dayRandom = seededRandom(days * 2000 + index);
+    const avgResponseTime = dayRandom() * 40 + 5;
 
     return {
       date: format(date, days <= 7 ? 'EEE' : 'MMM d'),
@@ -162,27 +179,39 @@ function formatResponseTime(minutes: number): string {
  * Analytics Page Component
  * Displays comprehensive analytics dashboard with charts and KPIs
  */
+/**
+ * Empty state component for charts
+ */
+const ChartEmptyState: React.FC<{ title: string }> = ({ title }) => (
+  <div className="flex flex-col items-center justify-center h-64 bg-white/5 rounded-lg border border-white/10">
+    <p className="text-gray-400 text-sm">No data available for {title}</p>
+  </div>
+);
+
 const Analytics: React.FC = () => {
   const [selectedRange, setSelectedRange] = useState<DateRangeOption>('7days');
 
-  // Generate mock data based on selected date range
-  const { sentimentData, platformData, volumeData, responseTimeData, kpis } =
-    useMemo(() => {
-      const days = dateRangeOptions[selectedRange].days;
-      const sentiment = generateSentimentData(days);
-      const platform = generatePlatformDistribution();
-      const volume = generateConversationVolumeData();
-      const response = generateResponseTimeData(days);
-      const metrics = calculateKPIs(platform, volume, response, sentiment);
+  // Date-independent data - only generated once (empty deps)
+  const { platformData, volumeData } = useMemo(() => {
+    return {
+      platformData: generatePlatformDistribution(),
+      volumeData: generateConversationVolumeData(),
+    };
+  }, []);
 
-      return {
-        sentimentData: sentiment,
-        platformData: platform,
-        volumeData: volume,
-        responseTimeData: response,
-        kpis: metrics,
-      };
-    }, [selectedRange]);
+  // Date-dependent data - regenerated when selectedRange changes
+  const { sentimentData, responseTimeData } = useMemo(() => {
+    const days = dateRangeOptions[selectedRange].days;
+    return {
+      sentimentData: generateSentimentData(days),
+      responseTimeData: generateResponseTimeData(days),
+    };
+  }, [selectedRange]);
+
+  // KPIs calculated from all data
+  const kpis = useMemo(() => {
+    return calculateKPIs(platformData, volumeData, responseTimeData, sentimentData);
+  }, [platformData, volumeData, responseTimeData, sentimentData]);
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -263,35 +292,51 @@ const Analytics: React.FC = () => {
       {/* First Row of Charts: Sentiment (2/3) + Platform Distribution (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <SentimentTrendChart
-            data={sentimentData}
-            title="Sentiment Trend"
-            description={`Customer sentiment over the last ${dateRangeOptions[selectedRange].label.toLowerCase()}`}
-          />
+          {sentimentData.length > 0 ? (
+            <SentimentTrendChart
+              data={sentimentData}
+              title="Sentiment Trend"
+              description={`Customer sentiment over the last ${dateRangeOptions[selectedRange].label.toLowerCase()}`}
+            />
+          ) : (
+            <ChartEmptyState title="Sentiment Trend" />
+          )}
         </div>
         <div className="lg:col-span-1">
-          <PlatformDistributionChart
-            data={platformData}
-            title="Platform Distribution"
-            description="Conversations by platform"
-            variant="donut"
-          />
+          {platformData.length > 0 ? (
+            <PlatformDistributionChart
+              data={platformData}
+              title="Platform Distribution"
+              description="Conversations by platform"
+              variant="donut"
+            />
+          ) : (
+            <ChartEmptyState title="Platform Distribution" />
+          )}
         </div>
       </div>
 
       {/* Second Row of Charts: Conversation Volume (1/2) + Response Time (1/2) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ConversationVolumeChart
-          data={volumeData}
-          title="Conversation Volume"
-          description="Resolved vs open conversations by platform"
-        />
-        <ResponseTimeChart
-          data={responseTimeData}
-          title="Response Time Trend"
-          description={`Average response times over the last ${dateRangeOptions[selectedRange].label.toLowerCase()}`}
-          slaThreshold={30}
-        />
+        {volumeData.length > 0 ? (
+          <ConversationVolumeChart
+            data={volumeData}
+            title="Conversation Volume"
+            description="Resolved vs open conversations by platform"
+          />
+        ) : (
+          <ChartEmptyState title="Conversation Volume" />
+        )}
+        {responseTimeData.length > 0 ? (
+          <ResponseTimeChart
+            data={responseTimeData}
+            title="Response Time Trend"
+            description={`Average response times over the last ${dateRangeOptions[selectedRange].label.toLowerCase()}`}
+            slaThreshold={30}
+          />
+        ) : (
+          <ChartEmptyState title="Response Time Trend" />
+        )}
       </div>
 
       {/* Footer with last updated info */}
