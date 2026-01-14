@@ -265,10 +265,8 @@ export function ThemeSettings({
                 )}
                 style={{
                   backgroundColor: color.value,
-                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore
                   '--tw-ring-color': color.value,
-                }}
+                } as React.CSSProperties & { '--tw-ring-color': string }}
               >
                 {isSelected && (
                   <Check className="h-5 w-5 text-white drop-shadow-md" />

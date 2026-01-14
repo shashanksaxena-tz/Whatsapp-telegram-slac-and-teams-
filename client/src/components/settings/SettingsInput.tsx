@@ -109,11 +109,9 @@ export function SettingsInput({
             aria-label={label}
             aria-invalid={!!error}
             aria-describedby={
-              error
-                ? `${id}-error`
-                : description
-                ? `${id}-description`
-                : undefined
+              [description ? `${id}-description` : '', error ? `${id}-error` : '']
+                .filter(Boolean)
+                .join(' ') || undefined
             }
             className={cn(
               'w-full min-w-[180px] rounded-lg border bg-surface px-4 py-2 text-sm text-white transition-colors',
