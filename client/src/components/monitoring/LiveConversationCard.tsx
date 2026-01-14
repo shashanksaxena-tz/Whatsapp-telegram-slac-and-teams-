@@ -148,7 +148,7 @@ export function LiveConversationCard({
           {conversation.customerAvatar ? (
             <img
               src={conversation.customerAvatar}
-              alt=""
+              alt={`${displayName}'s avatar`}
               className="h-10 w-10 rounded-full object-cover"
             />
           ) : (
